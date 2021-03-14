@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<!--
+Copyright (C) 2021 Sebastian Pipping <sebastian@pipping.org>
+Licensed under the GNU GPL v3 or later
+-->
+<html>
+<head>
+  <title>Shared Library Version Bump (verbump.de)</title>
+  <meta charset="utf-8"/>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous"></script>
+
+  <style>
+    input[type="text"] {
+      width: 4em;
+      text-align: right;
+    }
+
+    .tt, input[type="text"] {
+      /* Based upon https://developer.mozilla.org/en-US/docs/Web/HTML/Element/tt#CSS */
+      font-family: "Lucida Console", "Menlo", "Monaco", "Courier",
+                  monospace;
+    }
+
+    /* Gray out most things when there is no previous release */
+    #prev-release.disabled *, #changes-made.disabled * {
+      color: #ccc !important;
+      background-color: #e9ecef !important;
+    }
+
+    /* Keep checkbox "There is a previous release" well visible at all times */
+    #prev-release.disabled .form-check label {
+      color: #212529 !important;
+    }
+
+    /* Make readonly text inputs look less like they would be disabled */
+    #next-release input[type="text"] {
+      background-color: #fff5de;
+    }
+  </style>
+
+  <script>
+    function propagateToNextRelease() {
+      const prevReleaseExists = $( "#prev-exists" ).prop("checked");
+      var combinedValid = true;
+
+      var currentDiffers = true;
+      var ageDiffers = true;
+      var revisionDiffers = true;
+      var currentMinusAgeDiffers = true;
+
+      if (prevReleaseExists) {
+        const $prevVersionInfoAge = $( "#prev-version-info-age" );
+        const $prevVersionInfoCurrent = $( "#prev-version-info-current" );
+        const $prevVersionInfoRevision = $( "#prev-version-info-revision" );
+
+        const prevVersionInfoAgeInt = Number($prevVersionInfoAge.val());
+        const prevVersionInfoCurrentInt = Number($prevVersionInfoCurrent.val());
+        const prevVersionInfoRevisionInt = Number($prevVersionInfoRevision.val());
+
+        const prevVersionInfoAgeValid = Number.isInteger(prevVersionInfoAgeInt) && prevVersionInfoAgeInt >= 0;
+        const prevVersionInfoCurrentValid = Number.isInteger(prevVersionInfoCurrentInt) && prevVersionInfoCurrentInt >= 0;
+        const prevVersionInfoRevisionValid = Number.isInteger(prevVersionInfoRevisionInt) && prevVersionInfoRevisionInt >= 0;
+
+        combinedValid = prevVersionInfoAgeValid
+            && prevVersionInfoCurrentValid
+            && prevVersionInfoRevisionValid
+            && (prevVersionInfoCurrentInt >= prevVersionInfoAgeInt);
+
+        var nextAge = "?";
+        var nextCurrent = "?";
+        var nextRevision = "?";
+        var nextCurrentMinusAge = "?";
+
+        if (combinedValid) {
+          nextCurrent = prevVersionInfoCurrentInt;
+          nextRevision = prevVersionInfoRevisionInt;
+          nextAge = prevVersionInfoAgeInt;
+
+          const changesAny = $( "#changes-any" ).prop("checked");
+          if (changesAny) {
+            // "3. If the library source code has changed at all
+            //     since the last update,
+            //     then increment revision (‘c:r:a’ becomes ‘c:r+1:a’)."
+            nextRevision += 1;
+
+            // "4. If any interfaces have been added, removed, or changed
+            //     since the last update,
+            //     increment current, and set revision to 0."
+            const changesAdded = $( "#changes-added" ).prop("checked");
+            const changesRemoved = $( "#changes-removed" ).prop("checked");
+            const changesChanged = $( "#changes-changed" ).prop("checked");
+            if (changesAdded || changesRemoved || changesChanged) {
+              nextCurrent += 1;
+              nextRevision = 0;
+            }
+
+            // "5. If any interfaces have been added
+            //     since the last public release,
+            //     then increment age."
+            if (changesAdded) {
+              nextAge += 1;
+            }
+
+            // "6. If any interfaces have been removed or changed
+            //     since the last public release,
+            //     then set age to 0."
+            if (changesRemoved || changesChanged) {
+              nextAge = 0;
+            }
+          }
+          nextCurrentMinusAge = nextCurrent - nextAge;
+
+          currentDiffers = (nextCurrent != prevVersionInfoCurrentInt);
+          currentMinusAgeDiffers = (nextCurrentMinusAge != prevVersionInfoCurrentInt - prevVersionInfoAgeInt);
+          ageDiffers = (nextAge != prevVersionInfoAgeInt);
+          revisionDiffers = (nextRevision != prevVersionInfoRevisionInt);
+        }
+      } else {
+        // "1. Start with version information of ‘0:0:0’ for each libtool library."
+        nextAge = 0;
+        nextCurrent = 0;
+        nextRevision = 0;
+        nextCurrentMinusAge = 0;
+      }
+
+      const $nextVersionInfoCurrent = $( "#next-version-info-current" );
+      const $nextVersionInfoRevision = $( "#next-version-info-revision" );
+      const $nextVersionInfoAge = $( "#next-version-info-age" );
+      const $nextReleaseCurrentMinusAge = $( "#next-release-current-minus-age" );
+      const $nextReleaseAge = $( "#next-release-age" );
+      const $nextReleaseRevision = $( "#next-release-revision" );
+
+      $nextVersionInfoCurrent.val(nextCurrent);
+      $nextVersionInfoRevision.val(nextRevision);
+      $nextVersionInfoAge.val(nextAge);
+      $nextReleaseCurrentMinusAge.val(nextCurrentMinusAge);
+      $nextReleaseAge.val(nextAge);
+      $nextReleaseRevision.val(nextRevision);
+
+      syncErrorOrDifferent($nextVersionInfoCurrent, combinedValid, currentDiffers);
+      syncErrorOrDifferent($nextVersionInfoRevision, combinedValid, revisionDiffers);
+      syncErrorOrDifferent($nextVersionInfoAge, combinedValid, ageDiffers);
+      syncErrorOrDifferent($nextReleaseCurrentMinusAge, combinedValid, currentMinusAgeDiffers);
+      syncErrorOrDifferent($nextReleaseAge, combinedValid, ageDiffers);
+      syncErrorOrDifferent($nextReleaseRevision, combinedValid, revisionDiffers);
+    }
+
+    function syncIsValid($target, isValid) {
+      if (isValid) {
+        $target.removeClass("is-invalid");
+      } else {
+        $target.addClass("is-invalid");
+      }
+    }
+
+    function syncErrorOrDifferent($target, isValid, isDifferent) {
+      if (isValid) {
+        if (isDifferent) {
+          $target.addClass("is-valid");
+        } else {
+          $target.removeClass("is-valid");
+        }
+        $target.removeClass("is-invalid");
+      } else {
+        $target.addClass("is-invalid");
+        $target.removeClass("is-valid");
+      }
+    }
+
+    function onVersionInfoCurrentOrAgeInput() {
+      const $prevVersionInfoAge = $("#prev-version-info-age");
+      const $prevVersionInfoCurrent = $("#prev-version-info-current");
+      const prevVersionInfoAgeInt = Number($prevVersionInfoAge.val());
+      const prevVersionInfoCurrentInt = Number($prevVersionInfoCurrent.val());
+      const $prevReleaseCurrentMinusAge = $("#prev-release-current-minus-age");
+      const $prevReleaseAge = $("#prev-release-age");
+
+      // Perform validation
+      var prevVersionInfoAgeValid = Number.isInteger(prevVersionInfoAgeInt) && (prevVersionInfoAgeInt >= 0);
+      var prevVersionInfoCurrentValid = Number.isInteger(prevVersionInfoCurrentInt) && (prevVersionInfoCurrentInt >= 0);
+      var prevReleaseCurrentMinusAge = "?";
+      var prevReleaseCurrentMinusAgeValid = false;
+      if (prevVersionInfoCurrentValid && prevVersionInfoAgeValid) {
+        prevReleaseCurrentMinusAge = prevVersionInfoCurrentInt - prevVersionInfoAgeInt;
+        prevReleaseCurrentMinusAgeValid = (prevReleaseCurrentMinusAge >= 0);
+        if (! prevReleaseCurrentMinusAgeValid) {
+          prevVersionInfoAgeValid = false;
+          prevVersionInfoCurrentValid = false;
+        }
+      }
+
+      // Apply results
+      syncIsValid($prevVersionInfoAge, prevVersionInfoAgeValid);
+      syncIsValid($prevVersionInfoCurrent, prevVersionInfoCurrentValid);
+      $prevReleaseCurrentMinusAge.val(prevReleaseCurrentMinusAge);
+      $prevReleaseAge.val(prevVersionInfoAgeInt)
+      syncIsValid($prevReleaseCurrentMinusAge, prevReleaseCurrentMinusAgeValid)
+      syncIsValid($prevReleaseAge, prevVersionInfoAgeValid)
+
+      propagateToNextRelease();
+    }
+
+    function toggleProp($target, key) {
+      $target.prop(key, function(i, v) { return !v; });
+    }
+
+    function onReleaseCurrentOrAgeInput() {
+      // Copy current and age to -version-info side
+      const $prevReleaseAge = $("#prev-release-age");
+      const $prevReleaseCurrentMinusAge = $("#prev-release-current-minus-age");
+      const prevReleaseAgeInt = Number($prevReleaseAge.val());
+      const prevReleaseCurrentMinusAgeInt = Number($prevReleaseCurrentMinusAge.val());
+      const prevReleaseAgeValid = Number.isInteger(prevReleaseAgeInt) && (prevReleaseAgeInt >= 0);
+      const prevReleaseCurrentMinusAgeValid = Number.isInteger(prevReleaseCurrentMinusAgeInt) && (prevReleaseCurrentMinusAgeInt >= 0);
+
+      var prevCurrent = "?";
+      var prevCurrentValid = false;
+      if (prevReleaseAgeValid && prevReleaseCurrentMinusAgeValid) {
+        prevCurrent = prevReleaseCurrentMinusAgeInt + prevReleaseAgeInt;
+        prevCurrentValid = true;
+      }
+
+      const $prevVersionInfoAge = $("#prev-version-info-age");
+      const $prevVersionInfoCurrent = $("#prev-version-info-current");
+
+      $prevVersionInfoAge.val(prevReleaseAgeInt);
+      $prevVersionInfoCurrent.val(prevCurrent);
+
+      syncIsValid($prevReleaseAge, prevReleaseAgeValid);
+      syncIsValid($prevReleaseCurrentMinusAge, prevReleaseCurrentMinusAgeValid);
+      syncIsValid($prevVersionInfoAge, prevReleaseAgeValid);
+      syncIsValid($prevVersionInfoCurrent, prevCurrentValid);
+
+      propagateToNextRelease();
+    }
+
+    $(document).ready(function(){
+      $( "#prev-version-info-current" ).on("input", function(e) {
+        onVersionInfoCurrentOrAgeInput();
+      });
+
+      $( "#prev-version-info-revision" ).on("input", function(e) {
+        // Copy revision to -version-info side 1:1
+        const $prevVersionInfoRevision = $(this);
+        const $prevReleaseRevision = $("#prev-release-revision");
+        const isValid = Number.isInteger(Number($prevVersionInfoRevision.val()));
+        $prevReleaseRevision.val($prevVersionInfoRevision.val())
+        syncIsValid($prevReleaseRevision, isValid);
+        syncIsValid($prevVersionInfoRevision, isValid);
+        propagateToNextRelease();
+      });
+
+      $( "#prev-version-info-age" ).on("input", function(e) {
+        onVersionInfoCurrentOrAgeInput();
+      });
+
+      $( "#prev-release-current-minus-age" ).on("input", function(e) {
+        onReleaseCurrentOrAgeInput();
+      });
+
+      $( "#prev-release-age" ).on("input", function(e) {
+         onReleaseCurrentOrAgeInput();
+      });
+
+      $( "#prev-release-revision" ).on("input", function(e) {
+        // Copy revision to -version-info side 1:1
+        const $prevReleaseRevision = $(this);
+        const $prevVersionInfoRevision = $("#prev-version-info-revision");
+        const isValid = Number.isInteger(Number($prevReleaseRevision.val()));
+        $prevVersionInfoRevision.val($prevReleaseRevision.val())
+        syncIsValid($prevReleaseRevision, isValid);
+        syncIsValid($prevVersionInfoRevision, isValid);
+        propagateToNextRelease();
+      });
+
+      $( "#prev-exists" ).on("change", function() {
+        const releaseExists = $(this).prop("checked");
+        $( "#prev-release" ).toggleClass("disabled");
+        $( "#changes-made" ).toggleClass("disabled");
+        toggleProp($( "#changes-any" ), "disabled");
+        toggleProp($( "#changes-added" ), "disabled");
+        toggleProp($( "#changes-removed" ), "disabled");
+        toggleProp($( "#changes-changed" ), "disabled");
+        propagateToNextRelease();
+      });
+
+      $( "#changes-any" ).on("change", function() {
+        const anyChanges = ! $(this).prop("checked");
+        $( "#changes-added" ).prop("disabled", anyChanges);
+        $( "#changes-removed" ).prop("disabled", anyChanges);
+        $( "#changes-changed" ).prop("disabled", anyChanges);
+        propagateToNextRelease();
+      });
+      $( "#changes-added" ).on("change", propagateToNextRelease);
+      $( "#changes-removed" ).on("change", propagateToNextRelease);
+      $( "#changes-changed" ).on("change", propagateToNextRelease);
+
+      /* Help Firefox because <input[..] checked> is not always honored, it seems */
+      $( "#changes-any" ).prop("checked", true);
+      $( "#prev-exists" ).prop("checked", true);
+
+      propagateToNextRelease();
+    });
+  </script>
+
+</head>
+<body>
+
+  <div class="container">
+    <div class="text-center">
+      <h1 class="display-3">Shared Library Version Bump</h1>
+    </div>
+
+    <p>
+      You are about to make the next release of a shared library project
+      and have no idea how to bump linker arguments
+      <span class="tt text-secondary">-version-info <em>c</em>:<em>r</em>:<em>a</em></span>?
+      <br/>
+      Please answer a few simple questions
+      so that I can <em>help you with that</em>&hellip;
+    </p>
+
+    <div class="jumbotron">
+
+      <div id="prev-release">
+        <h2 class="display-4 mt-0">Previous Release</h2>
+        <div class="container">
+          <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="prev-exists">
+          <label class="form-check-label" for="prev-exists">
+            There is a previous release
+          </label>
+          </div>
+          <div class="form-row">
+          <label class="col-form-label tt">-version-info</label>
+          <input type="text" class="form-control" id="prev-version-info-current" value="4"></input>
+          <label class="col-form-label">:</label>
+          <input type="text" class="form-control" id="prev-version-info-revision" value="2"></input>
+          <label class="col-form-label">:</label>
+          <input type="text" class="form-control" id="prev-version-info-age" value="1"></input>
+
+          <label class="col-form-label">&harr;</label>
+
+          <label class="col-form-label tt">libsuperduper.so.</label>
+          <input type="text" class="form-control" id="prev-release-current-minus-age" value="3"></input>
+          <label class="col-form-label">.</label>
+          <input type="text" class="form-control" id="prev-release-age" value="1"></input>
+          <label class="col-form-label">.</label>
+          <input type="text" class="form-control" id="prev-release-revision" value="2"></input>
+          </div>
+        </div>
+      </div>
+
+      <div id="changes-made">
+        <h2 class="mt-5">
+            <span class="display-4">Changes Made</span>
+            <small class="text-muted">in the Mean Time</small>
+        </h2>
+        <div class="container">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="changes-any">
+            <label class="form-check-label" for="changes-any">
+              Changed something in the source code
+            </label>
+          </div>
+          <div style="padding-left: 1.4em">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="changes-added">
+            <label class="form-check-label" for="changes-added">
+              Added something new to the public interface
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="changes-removed">
+            <label class="form-check-label" for="changes-removed">
+              Removed something from the public interface
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="changes-changed">
+            <label class="form-check-label" for="changes-changed">
+              Changed any existing part of the public interface
+            </label>
+          </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="next-release">
+        <h2 class="display-4 mt-5">Upcoming Release</h2>
+        <div class="container">
+          <div class="form-row">
+            <label class="col-form-label tt">-version-info</label>
+            <input type="text" class="form-control" id="next-version-info-current" value="?" readonly></input>
+            <label class="col-form-label">:</label>
+            <input type="text" class="form-control" id="next-version-info-revision" value="?" readonly></input>
+            <label class="col-form-label">:</label>
+            <input type="text" class="form-control" id="next-version-info-age" value="?" readonly></input>
+
+            <label class="col-form-label">&harr;</label>
+
+            <label class="col-form-label tt">libsuperduper.so.</label>
+            <input type="text" class="form-control" id="next-release-current-minus-age" value="?" readonly></input>
+            <label class="col-form-label">.</label>
+            <input type="text" class="form-control" id="next-release-age" value="?" readonly></input>
+            <label class="col-form-label">.</label>
+            <input type="text" class="form-control" id="next-release-revision" value="?" readonly></input>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- jumbotron -->
+
+    <p>
+      A small handy tool developed by <a href="https://github.com/hartwork">Sebastian Pipping</a> in 2021 using Bootstrap 4 and jQuery.<br/>
+      If you like it, please support it by starring the GitHub repository. Thank you!
+    </p>
+    <p>
+      Based upon
+      <a href="https://www.gnu.org/software/libtool/">GNU Libtool</a>
+      documentation section
+      <a href="https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html">Updating library version information</a>.
+    </p>
+
+  </div><!-- container -->
+
+</body>
+</html>
