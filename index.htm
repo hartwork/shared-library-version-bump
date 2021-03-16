@@ -186,6 +186,7 @@ Licensed under the GNU GPL v3 or later
       // Perform validation
       var prevVersionInfoAgeValid = Number.isInteger(prevVersionInfoAgeInt) && (prevVersionInfoAgeInt >= 0);
       var prevVersionInfoCurrentValid = Number.isInteger(prevVersionInfoCurrentInt) && (prevVersionInfoCurrentInt >= 0);
+      const prevReleaseAge = prevVersionInfoAgeValid ? prevVersionInfoAgeInt : "?";
       var prevReleaseCurrentMinusAge = "?";
       var prevReleaseCurrentMinusAgeValid = false;
       if (prevVersionInfoCurrentValid && prevVersionInfoAgeValid) {
@@ -201,7 +202,7 @@ Licensed under the GNU GPL v3 or later
       syncIsValid($prevVersionInfoAge, prevVersionInfoAgeValid);
       syncIsValid($prevVersionInfoCurrent, prevVersionInfoCurrentValid);
       $prevReleaseCurrentMinusAge.val(prevReleaseCurrentMinusAge);
-      $prevReleaseAge.val(prevVersionInfoAgeInt)
+      $prevReleaseAge.val(prevReleaseAge)
       syncIsValid($prevReleaseCurrentMinusAge, prevReleaseCurrentMinusAgeValid)
       syncIsValid($prevReleaseAge, prevVersionInfoAgeValid)
 
