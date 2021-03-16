@@ -308,10 +308,10 @@ Licensed under the GNU GPL v3 or later
       });
 
       $( "#changes-any" ).on("change", function() {
-        const anyChanges = ! $(this).prop("checked");
-        $( "#changes-added" ).prop("disabled", anyChanges);
-        $( "#changes-removed" ).prop("disabled", anyChanges);
-        $( "#changes-changed" ).prop("disabled", anyChanges);
+        const shouldBeDisabled = ! $(this).prop("checked");
+        $( "#changes-added" ).prop("disabled", shouldBeDisabled);
+        $( "#changes-removed" ).prop("disabled", shouldBeDisabled);
+        $( "#changes-changed" ).prop("disabled", shouldBeDisabled);
         propagateToNextRelease();
       });
       $( "#changes-added" ).on("change", propagateToNextRelease);
