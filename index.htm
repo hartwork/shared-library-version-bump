@@ -264,8 +264,10 @@ Licensed under the GNU GPL v3 or later
         // Copy revision to -version-info side 1:1
         const $prevVersionInfoRevision = $(this);
         const $prevReleaseRevision = $("#prev-release-revision");
-        const isValid = Number.isInteger(toInt($prevVersionInfoRevision.val()));
-        $prevReleaseRevision.val($prevVersionInfoRevision.val())
+        const prevVersionInfoRevisionInt = toInt($prevVersionInfoRevision.val());
+        const isValid = Number.isInteger(prevVersionInfoRevisionInt);
+        const prevReleaseRevision = isValid ? prevVersionInfoRevisionInt : "?";
+        $prevReleaseRevision.val(prevReleaseRevision);
         syncIsValid($prevReleaseRevision, isValid);
         syncIsValid($prevVersionInfoRevision, isValid);
         propagateToNextRelease();
