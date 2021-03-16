@@ -47,6 +47,18 @@ Licensed under the GNU GPL v3 or later
   </style>
 
   <script>
+    function toInt(text) {
+      text = text.trim();
+      if (! text) {
+        return NaN;
+      }
+      const number = Number(text);
+      if (! Number.isInteger(number)) {
+        return NaN;
+      }
+      return number;
+    }
+
     function propagateToNextRelease() {
       const prevReleaseExists = $( "#prev-exists" ).prop("checked");
       var combinedValid = true;
@@ -61,9 +73,9 @@ Licensed under the GNU GPL v3 or later
         const $prevVersionInfoCurrent = $( "#prev-version-info-current" );
         const $prevVersionInfoRevision = $( "#prev-version-info-revision" );
 
-        const prevVersionInfoAgeInt = Number($prevVersionInfoAge.val());
-        const prevVersionInfoCurrentInt = Number($prevVersionInfoCurrent.val());
-        const prevVersionInfoRevisionInt = Number($prevVersionInfoRevision.val());
+        const prevVersionInfoAgeInt = toInt($prevVersionInfoAge.val());
+        const prevVersionInfoCurrentInt = toInt($prevVersionInfoCurrent.val());
+        const prevVersionInfoRevisionInt = toInt($prevVersionInfoRevision.val());
 
         const prevVersionInfoAgeValid = Number.isInteger(prevVersionInfoAgeInt) && prevVersionInfoAgeInt >= 0;
         const prevVersionInfoCurrentValid = Number.isInteger(prevVersionInfoCurrentInt) && prevVersionInfoCurrentInt >= 0;
@@ -178,8 +190,8 @@ Licensed under the GNU GPL v3 or later
     function onVersionInfoCurrentOrAgeInput() {
       const $prevVersionInfoAge = $("#prev-version-info-age");
       const $prevVersionInfoCurrent = $("#prev-version-info-current");
-      const prevVersionInfoAgeInt = Number($prevVersionInfoAge.val());
-      const prevVersionInfoCurrentInt = Number($prevVersionInfoCurrent.val());
+      const prevVersionInfoAgeInt = toInt($prevVersionInfoAge.val());
+      const prevVersionInfoCurrentInt = toInt($prevVersionInfoCurrent.val());
       const $prevReleaseCurrentMinusAge = $("#prev-release-current-minus-age");
       const $prevReleaseAge = $("#prev-release-age");
 
@@ -217,8 +229,8 @@ Licensed under the GNU GPL v3 or later
       // Copy current and age to -version-info side
       const $prevReleaseAge = $("#prev-release-age");
       const $prevReleaseCurrentMinusAge = $("#prev-release-current-minus-age");
-      const prevReleaseAgeInt = Number($prevReleaseAge.val());
-      const prevReleaseCurrentMinusAgeInt = Number($prevReleaseCurrentMinusAge.val());
+      const prevReleaseAgeInt = toInt($prevReleaseAge.val());
+      const prevReleaseCurrentMinusAgeInt = toInt($prevReleaseCurrentMinusAge.val());
       const prevReleaseAgeValid = Number.isInteger(prevReleaseAgeInt) && (prevReleaseAgeInt >= 0);
       const prevReleaseCurrentMinusAgeValid = Number.isInteger(prevReleaseCurrentMinusAgeInt) && (prevReleaseCurrentMinusAgeInt >= 0);
 
@@ -252,7 +264,7 @@ Licensed under the GNU GPL v3 or later
         // Copy revision to -version-info side 1:1
         const $prevVersionInfoRevision = $(this);
         const $prevReleaseRevision = $("#prev-release-revision");
-        const isValid = Number.isInteger(Number($prevVersionInfoRevision.val()));
+        const isValid = Number.isInteger(toInt($prevVersionInfoRevision.val()));
         $prevReleaseRevision.val($prevVersionInfoRevision.val())
         syncIsValid($prevReleaseRevision, isValid);
         syncIsValid($prevVersionInfoRevision, isValid);
@@ -275,7 +287,7 @@ Licensed under the GNU GPL v3 or later
         // Copy revision to -version-info side 1:1
         const $prevReleaseRevision = $(this);
         const $prevVersionInfoRevision = $("#prev-version-info-revision");
-        const isValid = Number.isInteger(Number($prevReleaseRevision.val()));
+        const isValid = Number.isInteger(toInt($prevReleaseRevision.val()));
         $prevVersionInfoRevision.val($prevReleaseRevision.val())
         syncIsValid($prevReleaseRevision, isValid);
         syncIsValid($prevVersionInfoRevision, isValid);
